@@ -4,10 +4,24 @@
 
 int Konto::naechsteKontonummer = 111000;
 std::vector<Konto> Konto::alleKonten;
-
-Konto::~Konto()
+std::string Konto::getKontoinhaber() const
 {
-     log("Konto von " + kontoinhaber + " (Konto Nr. " + std::to_string(kontonummer) + ") wird endgültig gelöscht.");
+    return kontoinhaber;
+}
+
+std::vector<Konto>& Konto::getAlleKonten()
+{
+    return alleKonten;
+}
+
+int Konto::getKontonummer() const
+{
+    return kontonummer;
+}
+
+float Konto::getKontostand() const
+{
+    return kontostand;
 }
 
 void Konto::add_transaction(float betrag)
@@ -43,7 +57,17 @@ void Konto::transfer(Konto &zielkonto, float betrag, const std::string &grund)
                       " erhalten. Grund: " + grund);
     }
 }
-
+void Konto::kontoKopieren(const std::string& kontoinhaber) {
+    for (const auto& konto : Konto::getAlleKonten()) {
+        if (konto.getKontoinhaber() == kontoinhaber) {
+            Konto neuesKonto(konto, "kopieren"); // Kopierkonstruktor aufrufen
+            alleKonten.push_back(neuesKonto);
+            std::cout << "Neues Konto fuer " << kontoinhaber << " wurde kopiert." << std::endl;
+            return;
+        }
+    }
+    std::cout << "Konto fuer " << kontoinhaber << " nicht gefunden." << std::endl;
+}
 
 void Konto::bareinzahlung(float betrag)
 {
@@ -107,12 +131,12 @@ void Konto::kontoHinzufuegen(const std::string &kontoinhaber)
 {
     Konto neuesKonto(kontoinhaber);
     alleKonten.push_back(neuesKonto);
-    std::cout << "Neues Konto f�r " << kontoinhaber << " hinzugefuegt.\n";
+    std::cout << "Neues Konto fuer " << kontoinhaber << " hinzugefuegt.\n";
 }
 
 void Konto::zeigeKonten()
 {
-    for (const auto &konto : alleKonten) // ich verstehe den doppelpunkt nicht
+    for (const auto &konto : alleKonten)
     {
         std::cout << "Kontoinhaber: " << konto.getKontoinhaber() << ", Kontonummer: " << konto.getKontonummer()
                   << ", Kontostand: " << konto.getKontostand() << " EUR\n";
@@ -153,13 +177,12 @@ void Konto::drucke_kontoauszug() const
         }
     }
 }
-void Konto::lade_Konten_csv(const std::string &dateiname)
+void Konto::lade_Konten_csv(const std::string& dateiname)
 {
     std::ifstream file(dateiname);
 
-    if (!file.is_open())
-    {
-        std::cerr << "Fehler beim Öffnen der Datei " << dateiname << " zum Laden.\n";
+    if (!file.is_open()) {
+        std::cerr << "Fehler beim Oeffnen der Datei " << dateiname << " zum Laden.\n";
         return;
     }
 
@@ -174,8 +197,7 @@ void Konto::lade_Konten_csv(const std::string &dateiname)
     float kontostand;
 
     // Datei zeilenweise einlesen
-    while (std::getline(file, line))
-    {
+    while (std::getline(file, line)) {
         std::stringstream ss(line);
         std::string token;
 
@@ -219,8 +241,7 @@ void Konto::exportiere_Konten_csv(const std::string &dateiname = "konten.csv")
     }
     checkFile.close();
 
-    // Kontodaten anhängen
-    for (const auto &konto : alleKonten)
+    for (const auto& konto : alleKonten)
     {
         file << konto.getKontoinhaber() << "," << konto.getKontonummer() << "," << konto.getKontostand() << "\n";
     }
@@ -228,27 +249,64 @@ void Konto::exportiere_Konten_csv(const std::string &dateiname = "konten.csv")
     file.close();
     std::cout << "Kontodaten wurden erfolgreich in " << dateiname << " exportiert.\n";
 }
-std::string Konto::getKontoinhaber() const
-{
-    return kontoinhaber;
+
+
+void Konto::loesche_konto_csv(const std::string& dateiname, const std::string& kontoinhaber) {
+    std::ifstream inputFile(dateiname);
+    std::vector<std::string> lines;
+
+    if (!inputFile.is_open()) {
+        std::cerr << "Fehler beim Oeffnen der Datei!" << std::endl;
+        return;
 }
 
-std::vector<Konto> &Konto::getAlleKonten()
-{
-    return alleKonten;
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        lines.push_back(line);
+    }
+    inputFile.close();
+
+    // Suchen und Löschen der Zeile mit dem angegebenen Kontoinhaber
+    for (auto it = lines.begin(); it != lines.end(); ++it) {
+        std::istringstream iss(*it);
+        std::string name;
+        std::getline(iss, name, ',');
+
+        if (name == kontoinhaber) {
+            lines.erase(it);
+            std::cout << "Konto von " << kontoinhaber << " wurde in Datei geloescht." << std::endl;
+            break;
+        }
+    }
+
+    std::ofstream outputFile(dateiname);
+    for (const auto& line : lines) {
+        outputFile << line << std::endl; // restlichen Zeilen zurück in die Datei
+    }
+    outputFile.close();
+
+
 }
 
-int Konto::getKontonummer() const
-{
-    return kontonummer;
+void Konto::close_account(const std::string& kontoinhaber, int kontonummer) {
+    for (auto it = Konto::getAlleKonten().begin(); it != Konto::getAlleKonten().end(); ++it) {
+        if (it->getKontoinhaber() == kontoinhaber && it->getKontonummer() == kontonummer) {
+            if (it->getKontostand() != 0.0f) {
+                std::cout << "Der Kontostand ist nicht 0. Bitte ueberweisen Sie das restliche Guthaben." << std::endl;
+                return;
+            }
+
+            // Löschen (Destruktor wird automatisch aufgerufen)
+            std::cout << "Das Konto von " << kontoinhaber << " wird geschlossen." << std::endl;
+            alleKonten.erase(it);
+            Konto::loesche_konto_csv("test.csv", kontoinhaber);
+
+            return;
+        }
 }
 
-float Konto::getKontostand() const
-{
-    return kontostand;
+    std::cout << "Konto fuer " << kontoinhaber << " nicht gefunden." << std::endl;
 }
-
-
 //////logging//////
 
 std::ostream *Konto::logger = &std::cout;
