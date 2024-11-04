@@ -18,7 +18,7 @@ int findeKontonr(int kontonummer)
     {
         if (konto.getKontonummer() == kontonummer)
         {
-            return 1; 
+            return 1;
         }
     }
     return 0;
@@ -39,6 +39,7 @@ Konto* findeKonto(const int kontonummer)
 
 int main()
 {
+    std::cout << "hallo";
     Konto::ladeLetzteKontonummer(); // Laedt die letzte Kontonummer
     std::string name;
     Konto::lade_Konten_csv("test.csv");
@@ -65,7 +66,7 @@ int main()
 
         switch (auswahl)
         {
-        
+
         case 1:
         {
             std::string kontoinhaber;
@@ -123,7 +124,7 @@ int main()
             std::cout << "Geben Sie den Namen des Kontoinhabers ein: ";
             std::getline(std::cin, kontoinhaber);
 
-            Konto *konto = findeKonto(kontoinhaber); 
+            Konto *konto = findeKonto(kontoinhaber);
 
             if (konto)
             {
@@ -139,10 +140,10 @@ int main()
             std::cout << "formatierter Kontoauszug:\n";
             break;
         case 5:
-            std::cout << "Kontdaten erfolgreich in Textdatei gespeichert.\n"; 
+            std::cout << "Kontdaten erfolgreich in Textdatei gespeichert.\n";
             Konto::exportiere_Konten_csv("test.csv");
             break;
-        
+
         case 6:
         {
             std::string name;
