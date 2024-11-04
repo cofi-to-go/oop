@@ -12,34 +12,38 @@ Konto *findeKonto(const std::string &kontoinhaber)
     }
     return nullptr;
 }
-int findeKontonr(int kontonummer)
-{
-    for (auto& konto : Konto::getAlleKonten())
-    {
-        if (konto.getKontonummer() == kontonummer)
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-Konto* findeKonto(const int kontonummer)
-{
-    for (auto& konto : Konto::getAlleKonten())
-    {
-        if (konto.getKontonummer() == kontonummer)
-        {
-            return &konto; // Rueckgabe von gefundenem Konto
-        }
-    }
-    return nullptr;
-}
-
 
 
 int main()
 {
-    std::cout << "hallo";
+    std::string logOption;
+    std::ofstream logfile;
+
+    // Benutzerabfrage, ob Log in Datei oder in Konsole erfolgen soll
+    std::cout << "Wo möchten Sie das Log speichern? (1: Konsole, 2: Datei): ";
+    std::getline(std::cin, logOption);
+
+    if (logOption == "2")
+    {
+        logfile.open("konto_log.txt");
+        if (logfile.is_open())
+        {
+            Konto::setLogger(logfile);
+            std::cout << "Logging wird in Datei 'konto_log.txt' geschrieben.\n";
+        }
+        else
+        {
+            std::cerr << "Fehler: Log-Datei konnte nicht geöffnet werden, es wird auf die Konsole geloggt.\n";
+        }
+    }
+    else
+    {
+        // Standardmäßig wird auf die Konsole geloggt
+        Konto::setLogger(std::cout);
+        std::cout << "Logging erfolgt auf die Konsole.\n";
+    }
+
+
     Konto::ladeLetzteKontonummer(); // Laedt die letzte Kontonummer
     std::string name;
     Konto::lade_Konten_csv("test.csv");
@@ -59,25 +63,29 @@ int main()
     int auswahl;
     while (true)
     {
-        std::cout << "Was moechten Sie nun tun? \n1: Bareinzahlung\n2: Barabhebung\n3: Konten anzeigen\n4: Kontoauszug "
-                     "drucken\n5: Kontodaten in Textdatei speichern\n 6: neues Konto mit selben Kontoinhaber anlegen\n 7: Konto schliessen\n 8: Programm beenden\n";
+        std::cout << "Was moechten Sie nun tun?\n"
+                  << "1: Bareinzahlung\n"
+                  << "2: Barabhebung\n"
+                  << "3: Konten anzeigen\n"
+                  << "4: Kontoauszug drucken\n"
+                  << "5: Kontodaten in Textdatei speichern\n"
+                  << "6: Überweisung\n"
+                  << "7: Programm beenden\n";
+
+        std::cout << "Bitte wählen Sie eine Option: ";
         std::cin >> auswahl;
         std::cin.ignore(); // Eingabepuffer leeren
 
         switch (auswahl)
         {
-
         case 1:
         {
             std::string kontoinhaber;
-            int kontonummer;
             float betrag;
 
             std::cout << "Geben Sie den Namen des Kontoinhabers ein: ";
             std::getline(std::cin, kontoinhaber);
-            std::cout << "Geben Sie die Kontonummer ein: ";
-            std::cin >> kontonummer;
-            Konto* konto = findeKonto(kontonummer);
+            Konto *konto = findeKonto(kontoinhaber);
 
             if (konto)
             {
@@ -94,14 +102,11 @@ int main()
         case 2:
         {
             std::string kontoinhaber;
-            int kontonummer;
             float betrag;
 
             std::cout << "Geben Sie den Namen des Kontoinhabers ein: ";
             std::getline(std::cin, kontoinhaber);
-            std::cout << "Geben Sie die Kontonummer ein: ";
-            std::cin >> kontonummer;
-            Konto *konto = findeKonto(kontonummer);
+            Konto *konto = findeKonto(kontoinhaber);
 
             if (konto)
             {
@@ -124,12 +129,12 @@ int main()
             std::cout << "Geben Sie den Namen des Kontoinhabers ein: ";
             std::getline(std::cin, kontoinhaber);
 
-            Konto *konto = findeKonto(kontoinhaber);
+            Konto *konto = findeKonto(kontoinhaber); // Use findeKonto to get a specific Konto object
 
             if (konto)
             {
                 std::cout << "Konto gefunden.\n";
-                //konto->zeige_Transaktionen(); // Correct: calling printTransactions on a specific Konto instance
+                konto->drucke_kontoauszug();
             }
             else
             {
@@ -140,46 +145,58 @@ int main()
             std::cout << "formatierter Kontoauszug:\n";
             break;
         case 5:
-            std::cout << "Kontdaten erfolgreich in Textdatei gespeichert.\n";
+            std::cout << "Kontdaten erfolgreich in Textdatei gespeichert.\n"; // Kontodaten in eine csv speichern.
             Konto::exportiere_Konten_csv("test.csv");
             break;
-
         case 6:
         {
-            std::string name;
-            std::cout << "Konto von Kontoinhaber kopieren: ";
-            std::getline(std::cin, name);
-            Konto::kontoKopieren(name);
-            break;
-
-        }
-        case 7:
-        {
             std::string kontoinhaber;
-            int kontonummer;
+            std::string zielkontoinhaber;
+            float betrag;
+            std::string grund;
 
             std::cout << "Geben Sie den Namen des Kontoinhabers ein: ";
             std::getline(std::cin, kontoinhaber);
-            std::cout << "Geben Sie die Kontonummer ein: ";
-            std::cin >> kontonummer;
-            if (findeKontonr(kontonummer) == 1) {
-                Konto* konto = findeKonto(kontoinhaber);
+            Konto *konto = findeKonto(kontoinhaber);
 
-                if (konto)
-                {
-                    konto->close_account(kontoinhaber, kontonummer);
-                }
-                else {
-                    std::cout << "Konto nicht gefunden";
-                }
+            if (!konto)
+            {
+                std::cout << "Konto nicht gefunden.\n";
+                break;
             }
-            else { std::cout << "Diese Kontonummer existiert nicht."; }
-            break;
+
+            std::cout << "Geben Sie den Namen des Zielkontos ein: ";
+            std::getline(std::cin, zielkontoinhaber);
+            Konto *zielkonto = findeKonto(zielkontoinhaber);
+
+            if (!zielkonto)
+            {
+                std::cout << "Konto nicht gefunden.\n";
+                break;
+            }
+
+            // Benutzer nach dem Überweisungsbetrag fragen
+            std::cout << "Geben Sie den Betrag ein, den Sie überweisen möchten: ";
+            std::cin >> betrag;
+            std::cin.ignore(); // Eingabepuffer bereinigen
+
+            std::cout << "Geben sie den Grund für die Überweisung ein: ";
+            std::getline(std::cin, grund);
+
+            if (konto != zielkonto)
+            {
+                konto->transfer(*zielkonto, betrag, grund);
+            }
+            else
+            {
+                std::cout << "Fehler: Das Zielkonto darf nicht das gleiche sein wie das Senderkonto.\n";
+            }
         }
-        case 8:
-            return 0; //Programm beenden
+        break;
+        case 7:
+            return 0;
         default:
-            std::cout << "Ungueltige Auswahl.\n";
+            std::cout << "Ung�ltige Auswahl.\n";
             break;
         }
     }
