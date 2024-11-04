@@ -12,7 +12,7 @@ Transaktion::~Transaktion()
 {
 }
 
-double Transaktion::get_betrag() const
+float Transaktion::get_betrag() const
 {
     return m_betrag;
 }
